@@ -3,29 +3,12 @@ package database
 import (
 	"log"
 
-	"github.com/3milly4ever/fighter-application/config"
+	"github.com/3milly4ever/fighter-application/internal/model"
+	config "github.com/3milly4ever/fighter-application/pkg"
 )
 
-type Fighter struct {
-	Name        string
-	Age         int
-	HeightCm    float64
-	HeightIn    float64
-	WeightKg    float64
-	WeightLb    float64
-	Association string
-	Wins        int
-	Losses      int
-	KOWins      int
-	SubWins     int
-	DecWins     int
-	KOLosses    int
-	SubLosses   int
-	DecLosses   int
-}
-
 // InsertFighter inserts a fighter into the PostgreSQL database
-func InsertFighter(fighter *Fighter) error {
+func InsertFighter(fighter *model.Fighter) error {
 	query := `
     INSERT INTO fighters (
         name, age, height_cm, height_in, weight_kg, weight_lb,
