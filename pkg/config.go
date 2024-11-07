@@ -1,19 +1,22 @@
 package config
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
-	log "github.com/3milly4ever/fighter-application/internal/log"
+	"github.com/3milly4ever/fighter-application/internal/log"
 	"github.com/3milly4ever/fighter-application/internal/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // DB is a global variable to hold the database connection
-var DB *sql.DB
+var DB *gorm.DB
 var App *fiber.App
 
 type AppConfig struct {
@@ -46,37 +49,41 @@ func InitServer() *fiber.App {
 	return app
 }
 
-// InitDB initializes the PostgreSQL connection
+// InitDB initializes the PostgreSQL connection using GORM
 func InitDB() {
 	// Load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
-		logrus.Fatalf("Error loading .env file")
+		logrus.Fatalf("Error loading .env file: %v", err)
 	}
 
-	// Get connection info from environment variables
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	// Build DSN (Data Source Name) for GORM
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		AppConfigInstance.DBHost,
+		AppConfigInstance.DBPort,
+		AppConfigInstance.DBUser,
+		AppConfigInstance.DBPassword,
+		AppConfigInstance.DBName,
+	)
 
-	// Build connection string
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
-
-	// Open connection to the database
-	var errOpen error
-	DB, errOpen = sql.Open("postgres", psqlInfo)
-	if errOpen != nil {
-		logrus.Fatalf("Error connecting to database: %v", errOpen)
+	// Connect to the database with GORM
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info), // Optional: Set GORM logging level
+	})
+	if err != nil {
+		logrus.Fatalf("Error connecting to database: %v", err)
 	}
 
-	// Ping to check if the connection is alive
-	errPing := DB.Ping()
-	if errPing != nil {
-		logrus.Fatalf("Error pinging database: %v", errPing)
+	// Verify the database connection
+	sqlDB, err := DB.DB()
+	if err != nil {
+		logrus.Fatalf("Error retrieving database instance: %v", err)
 	}
+
+	// Set connection pool settings
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	logrus.Println("Database connected successfully!")
 }
