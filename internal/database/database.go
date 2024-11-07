@@ -1,14 +1,17 @@
 package database
 
 import (
-	"log"
+	"context"
+	"time"
 
 	"github.com/3milly4ever/fighter-application/internal/model"
 	config "github.com/3milly4ever/fighter-application/pkg"
+	"github.com/sirupsen/logrus"
 )
 
 // InsertFighter inserts a fighter into the PostgreSQL database
 func InsertFighter(fighter *model.Fighter) error {
+	// Define the SQL query with ON CONFLICT for upsert behavior
 	query := `
     INSERT INTO fighters (
         name, age, height_cm, height_in, weight_kg, weight_lb,
@@ -31,13 +34,23 @@ func InsertFighter(fighter *model.Fighter) error {
         sub_losses = EXCLUDED.sub_losses,
         dec_losses = EXCLUDED.dec_losses;
     `
-	_, err := config.DB.Exec(query,
+
+	// Create a context with a timeout for the SQL execution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Execute the SQL query
+	_, err := config.DB.ExecContext(ctx, query,
 		fighter.Name, fighter.Age, fighter.HeightCm, fighter.HeightIn,
 		fighter.WeightKg, fighter.WeightLb, fighter.Association,
 		fighter.Wins, fighter.Losses, fighter.KOWins, fighter.SubWins,
 		fighter.DecWins, fighter.KOLosses, fighter.SubLosses, fighter.DecLosses)
+
 	if err != nil {
-		log.Printf("Error inserting fighter %s: %v", fighter.Name, err)
+		logrus.Errorf("Error inserting/updating fighter %s: %v", fighter.Name, err)
+		return err
 	}
-	return err
+
+	logrus.Infof("Successfully inserted/updated fighter %s", fighter.Name)
+	return nil
 }
