@@ -10,6 +10,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// const selectors = struct {
+// 	Name      string
+// 	Bio       string
+// 	Record    string
+// 	FightHist string
+// }{
+// 	Name:      "span.fn",
+// 	Bio:       "div.bio li",
+// 	Record:    "div.left_side div.record",
+// 	FightHist: "div.module.fight_history tr",
+// }
+
 // ScrapeFighterProfile scrapes fighter data from a given Sherdog fighter profile URL
 func ScrapeFighterProfile(url string) (*model.Fighter, error) {
 	logrus.Infof("Starting to scrape fighter profile: %s", url)
@@ -22,8 +34,8 @@ func ScrapeFighterProfile(url string) (*model.Fighter, error) {
 
 	// Scrape fighter's name
 	c.OnHTML("span.fn", func(e *colly.HTMLElement) {
-		fighter.Name = e.Text
-		logrus.Infof("Scraped fighter name: %s", fighter.Name)
+		fighter.Name = strings.TrimSpace(e.Text)
+		logrus.Debugf("Scraped fighter name: %s", fighter.Name)
 	})
 
 	// Scrape fighter's physical attributes and other information

@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Fighter struct {
 	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
@@ -23,4 +27,6 @@ type Fighter struct {
 	KOLosses    int
 	SubLosses   int
 	DecLosses   int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
